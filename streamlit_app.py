@@ -5,6 +5,9 @@ import numpy as np
 import pandas as pd
 import altair as alt
 import streamlit as st
+import pendulum
+import time
+from requests import Request
 
 from calls.openf1 import OpenF1Connector
 
@@ -15,6 +18,7 @@ logging.basicConfig(
     datefmt="%Y-%m-%d %H:%M:%S",
     level=logging.INFO,
 )
+log = logging.getLogger(__name__)
 
 # Streamlit page configuration
 st.set_page_config(
@@ -319,24 +323,78 @@ def create_visualization(
 
 # Main script
 f1 = OpenF1Connector()
-current_meeting = f1.get_meetings()
-if current_meeting.status_code == 200:
-    df = get_data()
+SESSION_NAME = "Race"
 
-    if not df.empty:
-        df["team_colour"] = df["team_colour"].apply(
-            lambda x: "#" + x if not x.startswith("#") else x
-        )
-        race_title = f"{df.iloc[0].meeting_name} - {df.iloc[0].session_name}"
+@st.cache_data
+def cache_session(_f1: OpenF1Connector) -> tuple[Request, Request, Request] | str:
+    current_meeting = _f1.get_meetings()
+    if current_meeting.status_code == 200:
+        meeting_key = current_meeting.json()[0]["meeting_key"]
+        drivers = f1.get_drivers(meeting_key=meeting_key)
+        session = f1.get_sessions(meeting_key=meeting_key, session_name=SESSION_NAME)
+        if session.status_code == 200:
+            log.info("Session found successfully, continuing...")
+            return current_meeting, drivers, session
+        log.info("Session is not available.")
+        return "The requested session is not available 😔"
+    log.info("Meeting is not available.")
+    return "There is no race this weekend 😔"
 
-        st.title(f"Real-Time F1 Lap Times: {race_title}")
+def get_data(f1: OpenF1Connector, 
+             session_key: int, 
+             df_drivers: pd.DataFrame,
+             df_meeting: pd.DataFrame,
+             session_name: str) -> pd.DataFrame:
+    log.info("Fetching laps data...")
+    laps = f1.get_laps(session_key=session_key)
+    pits = f1.get_pits(session_key=session_key)
+    if laps.status_code != 200 and pits.status_code != 200:
+        log.error("Unable to fetch data")
+        return "Lap times and pit stops data is unavailable"
+    df_pits = pd.DataFrame(pits.json())
+    df_laps = pd.DataFrame(laps.json())
+    df_laps = df_laps.merge(
+        df_pits,
+        on=["driver_number", "meeting_key", "session_key", "lap_number"],
+        how="left",
+    )
+    df_laps = df_laps.merge(
+        df_drivers, on=["driver_number", "meeting_key", "session_key"], how="inner"
+    )
+    df_laps = df_laps.merge(df_meeting, on=["meeting_key"], how="inner")
+    df_laps["session_name"] = session_name
+    df_laps.dropna(subset=["lap_duration"])
+    log.info("Data fetching complete, waiting for next fetch attempt!")
+    return df_laps
 
-        df, smooth_pit_laps = apply_filters(df)
-        df, last_lap_df, min_laptime, max_laptime, team_avg_lap, fastest_team = (
-            calculate_fields(df, smooth_pit_laps)
-        )
-        create_visualization(df, last_lap_df, min_laptime, max_laptime, team_avg_lap)
-    else:
-        st.write("Unable to fetch data 😭")
+cached_session = cache_session(f1)
+
+if type(cached_session) is tuple:
+    current_meeting, drivers, session = cached_session
+    rerun = True
+    date_end_t10 = pendulum.parse(session.json()[0]["date_end"]).add(minutes=10)
+    while rerun:
+        df = get_data()
+
+        if not df.empty:
+            df["team_colour"] = df["team_colour"].apply(
+                lambda x: "#" + x if not x.startswith("#") else x
+            )
+            race_title = f"{df.iloc[0].meeting_name} - {df.iloc[0].session_name}"
+
+            st.title(f"Real-Time F1 Lap Times: {race_title}")
+
+            df, smooth_pit_laps = apply_filters(df)
+            df, last_lap_df, min_laptime, max_laptime, team_avg_lap, fastest_team = (
+                calculate_fields(df, smooth_pit_laps)
+            )
+            create_visualization(df, last_lap_df, min_laptime, max_laptime, team_avg_lap)
+        else:
+            st.error("Unable to fetch data 😭")
+        now = pendulum.now("utc")
+        if now >= date_end_t10:
+            rerun = False
+        time.sleep(30)
+        st.rerun()
 else:
-    st.write("There is no race this weekend 😔")
+    st.error(cached_session)
