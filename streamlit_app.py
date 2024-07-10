@@ -292,6 +292,7 @@ def create_visualization(
     min_laptime: float,
     max_laptime: float,
     team_avg_lap: pd.DataFrame,
+    fastest_team: pd.DataFrame,
 ):
     """Creates the visualization based on the dataframe."""
     placeholder = st.empty()
@@ -325,6 +326,7 @@ def create_visualization(
 f1 = OpenF1Connector()
 SESSION_NAME = "Race"
 
+
 @st.cache_data
 def cache_session(_f1: OpenF1Connector) -> tuple[Request, Request, Request] | str:
     current_meeting = _f1.get_meetings()
@@ -340,11 +342,14 @@ def cache_session(_f1: OpenF1Connector) -> tuple[Request, Request, Request] | st
     log.info("Meeting is not available.")
     return "There is no race this weekend 😔"
 
-def get_data(f1: OpenF1Connector, 
-             session_key: int, 
-             df_drivers: pd.DataFrame,
-             df_meeting: pd.DataFrame,
-             session_name: str) -> pd.DataFrame:
+
+def get_data(
+    f1: OpenF1Connector,
+    session_key: int,
+    df_drivers: pd.DataFrame,
+    df_meeting: pd.DataFrame,
+    session_name: str,
+) -> pd.DataFrame:
     log.info("Fetching laps data...")
     laps = f1.get_laps(session_key=session_key)
     pits = f1.get_pits(session_key=session_key)
@@ -363,38 +368,59 @@ def get_data(f1: OpenF1Connector,
     )
     df_laps = df_laps.merge(df_meeting, on=["meeting_key"], how="inner")
     df_laps["session_name"] = session_name
-    df_laps.dropna(subset=["lap_duration"])
+    df_laps.dropna(subset=["lap_duration"], inplace=True)
     log.info("Data fetching complete, waiting for next fetch attempt!")
     return df_laps
+
+
+def visualize_data() -> None:
+    df = get_data(
+        f1=f1,
+        session_key=session.json()[0]["session_key"],
+        df_drivers=df_drivers,
+        df_meeting=df_meeting,
+        session_name=SESSION_NAME,
+    )
+
+    if not df.empty:
+        df["team_colour"] = df["team_colour"].apply(
+            lambda x: "#" + x if not x.startswith("#") else x
+        )
+        race_title = f"{df.iloc[0].meeting_name} - {df.iloc[0].session_name}"
+
+        st.title(f"Real-Time F1 Lap Times: {race_title}")
+
+        df, smooth_pit_laps = apply_filters(df)
+        df, last_lap_df, min_laptime, max_laptime, team_avg_lap, fastest_team = (
+            calculate_fields(df, smooth_pit_laps)
+        )
+        create_visualization(
+            df, last_lap_df, min_laptime, max_laptime, team_avg_lap, fastest_team
+        )
+    else:
+        st.error("Unable to fetch data 😭")
+
 
 cached_session = cache_session(f1)
 
 if type(cached_session) is tuple:
     current_meeting, drivers, session = cached_session
-    rerun = True
+    df_drivers = pd.DataFrame(drivers.json())
+    df_meeting = pd.DataFrame(current_meeting.json())
+    # Initialize the rerun variable in session state
+    if "rerun" not in st.session_state:
+        st.session_state.rerun = True
     date_end_t10 = pendulum.parse(session.json()[0]["date_end"]).add(minutes=10)
-    while rerun:
-        df = get_data()
-
-        if not df.empty:
-            df["team_colour"] = df["team_colour"].apply(
-                lambda x: "#" + x if not x.startswith("#") else x
-            )
-            race_title = f"{df.iloc[0].meeting_name} - {df.iloc[0].session_name}"
-
-            st.title(f"Real-Time F1 Lap Times: {race_title}")
-
-            df, smooth_pit_laps = apply_filters(df)
-            df, last_lap_df, min_laptime, max_laptime, team_avg_lap, fastest_team = (
-                calculate_fields(df, smooth_pit_laps)
-            )
-            create_visualization(df, last_lap_df, min_laptime, max_laptime, team_avg_lap)
-        else:
-            st.error("Unable to fetch data 😭")
+    while st.session_state.rerun:
+        visualize_data()
         now = pendulum.now("utc")
         if now >= date_end_t10:
-            rerun = False
+            st.session_state.rerun = False
+            st.stop()
         time.sleep(30)
         st.rerun()
 else:
     st.error(cached_session)
+
+# Final visualization to retain visuals after loop
+visualize_data()
