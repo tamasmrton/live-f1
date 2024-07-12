@@ -36,7 +36,6 @@ def apply_filters(df: pd.DataFrame) -> pd.DataFrame:
     with col1:
         team_filter = st.multiselect("Select the team(s)", pd.unique(df["team_name"]))
 
-    # Lap range filter
     min_lap_number = df["lap_number"].min()
     max_lap_number = df["lap_number"].max()
     selected_lap_range = st.slider(
@@ -45,11 +44,8 @@ def apply_filters(df: pd.DataFrame) -> pd.DataFrame:
         max_lap_number,
         (min_lap_number, max_lap_number),
     )
-
-    # Smooth pit laps toggle
     smooth_pit_laps = st.checkbox("Smoothen pit in/out laps")
 
-    # Apply filters to dataframe
     if team_filter:
         df = df[df["team_name"].isin(team_filter)]
 
@@ -57,12 +53,10 @@ def apply_filters(df: pd.DataFrame) -> pd.DataFrame:
         driver_filter = st.multiselect(
             "Select the driver(s)", pd.unique(df["last_name"])
         )
-
     if driver_filter:
         df = df[df["last_name"].isin(driver_filter)]
 
     df = df[df["lap_number"].between(selected_lap_range[0], selected_lap_range[1])]
-
     return df, smooth_pit_laps
 
 
