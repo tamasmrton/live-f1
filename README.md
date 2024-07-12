@@ -1,5 +1,7 @@
 # Live F1
 
+[![CI pipeline](https://github.com/tamasmrton/live-f1/actions/workflows/pipeline.yml/badge.svg)](https://github.com/tamasmrton/live-f1/actions/workflows/pipeline.yml)
+
 ## Overview
 
 Live F1 is a Python project designed to fetch and display real-time Formula 1 lap times and related data. It provides a visual representation of lap times, pit stops, and other relevant statistics for each F1 race session.
