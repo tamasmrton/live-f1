@@ -1,8 +1,4 @@
-import pytest
-import requests
-import requests_mock
 from unittest.mock import patch
-from time import sleep
 
 from utils.requests_wrapper import get
 

@@ -7,29 +7,13 @@ log = logging.getLogger(__name__)
 
 
 class OpenF1Connector:
-    def __init__(self) -> None:
-        self.today_utc: pendulum.DateTime = pendulum.today("UTC")
-        self.race_week_start: pendulum.DateTime = self._get_race_week_start()
-
-    def _get_race_week_start(self) -> pendulum.DateTime:
-        """Race weeks start on fridays"""
-        if self.today_utc.day_of_week == pendulum.FRIDAY:
-            return self.today_utc
-        else:
-            last_friday = self.today_utc.previous(pendulum.FRIDAY)
-            return last_friday
-
     def format_timestamp(self, ts: pendulum.DateTime) -> str:
         return ts.to_iso8601_string()
 
-    def get_meetings(self) -> re.Response:
+    def get_meetings(self, meeting_key: int | str = "latest") -> re.Response:
         endpoint = "https://api.openf1.org/v1/meetings"
-        race_week_start_formatted = self.format_timestamp(self.race_week_start)
-        params = {"date_start>": race_week_start_formatted}
-        log.info(
-            "Listening to endpoint `/meetings` with date `%s`",
-            race_week_start_formatted,
-        )
+        params = {"meeting_key": meeting_key}
+        log.info("Listening to endpoint `/meetings` with parameters `%s`", params)
         return get(endpoint=endpoint, params=params)
 
     def get_drivers(self, meeting_key: int) -> re.Response:

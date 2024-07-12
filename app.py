@@ -28,17 +28,6 @@ st.set_page_config(
 )
 
 
-# Function to load data
-def get_data() -> pd.DataFrame:
-    """Fetches data from csv file."""
-    try:
-        df = pd.read_csv("lap_times.csv")
-        return df.dropna(subset=["lap_duration"])
-    except Exception as e:
-        st.error(f"Error loading data: {e}")
-        return pd.DataFrame()
-
-
 def apply_filters(df: pd.DataFrame) -> pd.DataFrame:
     """Applies user-selected filters to the dataframe."""
     team_filter = st.multiselect("Select the team(s)", pd.unique(df["team_name"]))

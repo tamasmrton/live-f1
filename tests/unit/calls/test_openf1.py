@@ -1,22 +1,6 @@
-import pytest
 import pendulum
-from unittest.mock import patch, MagicMock
-from utils.requests_wrapper import re
+from unittest.mock import patch
 from calls.openf1 import OpenF1Connector  # Adjust import as necessary
-
-
-def test_get_race_week_start_on_friday():
-    with patch("pendulum.today") as mock_today:
-        mock_today.return_value = pendulum.date(2024, 7, 5)  # 2024-07-05 is a Friday
-        connector = OpenF1Connector()
-        assert connector.race_week_start == pendulum.date(2024, 7, 5)
-
-
-def test_get_race_week_start_not_friday():
-    with patch("pendulum.today") as mock_today:
-        mock_today.return_value = pendulum.date(2024, 7, 6)  # 2024-07-06 is a Saturday
-        connector = OpenF1Connector()
-        assert connector.race_week_start == pendulum.date(2024, 7, 5)
 
 
 def test_format_timestamp():
@@ -91,7 +75,3 @@ def test_get_pits(requests_mock):
     response = connector.get_pits(session_key)
     assert response.status_code == 200
     assert response.json() == {"data": "pits_data"}
-
-
-if __name__ == "__main__":
-    pytest.main()
