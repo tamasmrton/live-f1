@@ -20,7 +20,7 @@ To get started with Live F1, follow these steps:
 
 ### Prerequisites
 
-- Python 3.1 or higher
+- Python 3.11 or higher
 - pip (Python package installer)
 
 ### Install dependencies
