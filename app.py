@@ -11,6 +11,9 @@ from requests import Request
 
 from calls.openf1 import OpenF1Connector
 
+# pandas config
+pd.set_option("future.no_silent_downcasting", True)
+
 # Configure logging
 logging.basicConfig(
     stream=sys.stdout,
@@ -324,8 +327,7 @@ f1 = OpenF1Connector()
 SESSION_NAME = "Race"
 
 
-@st.cache_data
-def cache_session(_f1: OpenF1Connector) -> tuple[Request, Request, Request] | str:
+def fetch_session(_f1: OpenF1Connector) -> tuple[Request, Request, Request] | str:
     current_meeting = _f1.get_meetings()
     if current_meeting.status_code == 200:
         meeting_key = current_meeting.json()[0]["meeting_key"]
@@ -398,10 +400,10 @@ def visualize_data() -> None:
         st.error("Unable to fetch data 😭")
 
 
-cached_session = cache_session(f1)
+fetched_session = fetch_session(f1)
 
-if type(cached_session) is tuple:
-    current_meeting, drivers, session = cached_session
+if type(fetched_session) is tuple:
+    current_meeting, drivers, session = fetched_session
     df_drivers = pd.DataFrame(drivers.json())
     df_meeting = pd.DataFrame(current_meeting.json())
     # Initialize the rerun variable in session state
@@ -417,7 +419,7 @@ if type(cached_session) is tuple:
         time.sleep(30)
         st.rerun()
 else:
-    st.error(cached_session)
+    st.error(fetched_session)
 
 # Final visualization to retain visuals after loop
 visualize_data()
