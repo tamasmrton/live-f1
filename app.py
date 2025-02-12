@@ -362,7 +362,6 @@ def get_data(
         on=["driver_number", "meeting_key", "session_key", "lap_number"],
         how="left",
     )
-    df_drivers.dropna(inplace=True)
     df_laps = df_laps.merge(
         df_drivers, on=["driver_number", "meeting_key", "session_key"], how="inner"
     )
@@ -370,9 +369,6 @@ def get_data(
     df_laps["session_name"] = session_name
     df_laps.dropna(subset=["lap_duration"], inplace=True)
     log.info("Data fetching complete, waiting for next fetch attempt!")
-    df_laps.to_csv("laps.csv", index=False)
-    df_drivers.to_csv("drivers.csv", index=False)
-    df_pits.to_csv("pits.csv", index=False)
     return df_laps
 
 
