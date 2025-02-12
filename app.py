@@ -372,7 +372,7 @@ def get_data(
     return df_laps
 
 
-def visualize_data() -> None:
+def visualize_data(placeholder) -> None:
     df = get_data(
         f1=f1,
         session_key=session.json()[0]["session_key"],
@@ -383,7 +383,7 @@ def visualize_data() -> None:
 
     if not df.empty:
         df["team_colour"] = df["team_colour"].apply(
-            lambda x: "#" + x if not x.startswith("#") else x
+            lambda x: "#" + x if x and not x.startswith("#") else x
         )
         race_title = f"{df.iloc[0].meeting_name} - {df.iloc[0].session_name}"
 
@@ -402,24 +402,23 @@ def visualize_data() -> None:
 
 fetched_session = fetch_session(f1)
 
-if type(fetched_session) is tuple:
+if isinstance(fetched_session, tuple):
     current_meeting, drivers, session = fetched_session
     df_drivers = pd.DataFrame(drivers.json())
     df_meeting = pd.DataFrame(current_meeting.json())
-    # Initialize the rerun variable in session state
-    if "rerun" not in st.session_state:
-        st.session_state.rerun = True
+
+    # Use st.empty to create a container that will be refreshed
+    placeholder = st.empty()
     date_end_t10 = pendulum.parse(session.json()[0]["date_end"]).add(minutes=10)
-    while st.session_state.rerun:
-        visualize_data()
+
+    while True:
+        visualize_data(placeholder)
         now = pendulum.now("utc")
         if now >= date_end_t10:
-            st.session_state.rerun = False
-            st.stop()
+            break
         time.sleep(30)
-        st.rerun()
 else:
     st.error(fetched_session)
 
 # Final visualization to retain visuals after loop
-visualize_data()
+# visualize_data(st.empty())
