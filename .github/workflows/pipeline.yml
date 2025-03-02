@@ -28,9 +28,6 @@ jobs:
       - name: Run pre-commit
         run: |
           pre-commit run --all-files
-      - name: Run unit tests
+      - name: Run tests
         run: |
-          pytest tests/unit -v
-      - name: Run integration tests
-        run: |
-          pytest tests/integration -v
+          pytest tests -v

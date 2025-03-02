@@ -184,7 +184,16 @@ def calculate_fields(df: pd.DataFrame, smooth_pit_laps: bool) -> pd.DataFrame:
         df.groupby(["team_name", "team_colour"])["lap_duration"].mean().reset_index()
     )
     team_avg_lap.columns = ["team_name", "team_colour", "avg_lap_duration"]
-    fastest_team = team_avg_lap.loc[team_avg_lap["avg_lap_duration"].idxmin()]
+
+    if not team_avg_lap.empty:
+        fastest_team = team_avg_lap.loc[team_avg_lap["avg_lap_duration"].idxmin()]
+        team_avg_lap["avg_lap_diff"] = (
+            team_avg_lap["avg_lap_duration"] - fastest_team["avg_lap_duration"]
+        )
+    else:
+        fastest_team = pd.Series({"team_name": "N/A", "avg_lap_duration": 0})
+        team_avg_lap["avg_lap_diff"] = 0
+
     team_avg_lap["avg_lap_diff"] = (
         team_avg_lap["avg_lap_duration"] - fastest_team["avg_lap_duration"]
     )
@@ -199,7 +208,7 @@ def calculate_fields(df: pd.DataFrame, smooth_pit_laps: bool) -> pd.DataFrame:
     )
     team_avg_lap.sort_values(by="avg_lap_diff", inplace=True)
 
-    df["point_size"] = df["pit_duration"] ** 3
+    df["point_size"] = (df["pit_duration"] + 1) ** 3
 
     return df, last_lap_df, min_laptime, max_laptime, team_avg_lap, fastest_team
 
