@@ -27,9 +27,10 @@ jobs:
           python -m pipx ensurepath
           pipx install poetry==1.8.4
 
-      - name: Poetry install dependencies
+      - name: Install dependencies
         run: |
           poetry install --with build
+          pre-commit install
 
       - name: Run pre-commit
         run: |
