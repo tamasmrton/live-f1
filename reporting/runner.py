@@ -181,7 +181,7 @@ class ReportingRunner:
             max_laptime=max_laptime,
         )
 
-        _, col_2 = st.columns(spec=[0.9, 0.1], gap="medium")
+        _, col_2 = st.columns(spec=[0.9, 0.11], gap="medium")
         with col_2:
             if st.button(label="Refresh Data", icon=":material/refresh:"):
                 # Clear all session state data to force reload
