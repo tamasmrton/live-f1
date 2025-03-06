@@ -15,13 +15,20 @@ class MotherDuckSettings(BaseSettings):
 
 
 class MotherDuckConnection:
-    _settings = MotherDuckSettings()
-    _connection: DuckDBPyConnection | None = None
+    def __init__(self):
+        self._settings = None
+        self._connection: DuckDBPyConnection | None = None
+
+    @property
+    def settings(self) -> MotherDuckSettings:
+        if self._settings is None:
+            self._settings = MotherDuckSettings()
+        return self._settings
 
     @contextmanager
     def connect(self) -> Generator[DuckDBPyConnection, None, None]:
         try:
-            conn_str = f"md:{self._settings.motherduck_database}?motherduck_token={self._settings.motherduck_token}"
+            conn_str = f"md:{self.settings.motherduck_database}?motherduck_token={self.settings.motherduck_token}"
             self._connection = connect(database=conn_str)
             yield self._connection
         except ConnectionException as e:

@@ -1,4 +1,4 @@
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch, MagicMock, PropertyMock
 import pytest
 import pandas as pd
 from duckdb import ConnectionException
@@ -10,8 +10,12 @@ def mock_settings() -> MotherDuckSettings:
     settings = MotherDuckSettings(
         motherduck_token="test_token", motherduck_database="test_db"
     )
-    # Create a mock instance of MotherDuckConnection with mocked _settings
-    with patch.object(MotherDuckConnection, "_settings", settings):
+    with patch.object(
+        MotherDuckConnection,
+        "settings",
+        new_callable=PropertyMock,
+        return_value=settings,
+    ):
         yield settings
 
 
