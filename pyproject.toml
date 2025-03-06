@@ -11,13 +11,13 @@ streamlit = "^1.42.2"
 duckdb = "^1.2.0"
 pydantic = "^2.10.6"
 pydantic-settings = "^2.8.0"
-pre-commit = "^4.1.0"
 
-[tool.poetry.group.test]
+[tool.poetry.group.build]
 optional = true
 
-[tool.poetry.group.test.dependencies]
+[tool.poetry.group.build.dependencies]
 pytest = "^8.3.5"
+pre-commit = "^4.1.0"
 
 [build-system]
 requires = ["poetry-core"]
